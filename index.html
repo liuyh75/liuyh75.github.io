@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>收益统计软件</title>
+    <link rel="stylesheet" href="styles.css">
+    <!-- 引入Chart.js用于数据可视化 -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- 引入Chart.js数据标签插件 -->
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
+</head>
+<body>
+    <!-- 登录页面 -->
+    <div id="login-page" class="login-page">
+        <div class="login-container">
+            <h2>收益统计软件</h2>
+            <div class="login-tabs">
+                <button class="login-tab active" data-tab="login">登录</button>
+                <button class="login-tab" data-tab="register">注册</button>
+            </div>
+            <div class="login-tab-content active" id="login-tab">
+                <form id="login-form">
+                    <input type="text" id="login-username" placeholder="用户名" required>
+                    <input type="password" id="login-password" placeholder="密码" required>
+                    <button type="submit">登录</button>
+                </form>
+            </div>
+            <div class="login-tab-content" id="register-tab">
+                <form id="register-form">
+                    <input type="text" id="register-username" placeholder="用户名" required>
+                    <input type="password" id="register-password" placeholder="密码" required>
+                    <input type="password" id="register-confirm-password" placeholder="确认密码" required>
+                    <button type="submit">注册</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 主应用 -->
+    <div id="app" class="container" style="display: none;">
+        <header>
+            <div class="header-content">
+                <h1>投资及收益概览</h1>
+                <div class="user-controls">
+                    <button id="settings-btn" class="settings-button">设置</button>
+                    <button id="logout-btn" class="logout-button">退出登录</button>
+                </div>
+            </div>
+        </header>
+        
+        <main>
+            <!-- 导航菜单 -->
+            <nav>
+                <ul>
+                    <li><button class="nav-btn" data-section="investment">投资分配</button></li>
+                    <li><button class="nav-btn active" data-section="calendar">日历视图</button></li>
+                    <li><button class="nav-btn" data-section="statistics">收益分析</button></li>
+                </ul>
+            </nav>
+            
+            <!-- 日历视图部分 -->
+            <section id="calendar" class="section active">
+                <div class="calendar-header">
+                    <button id="prev-month">←</button>
+                    <div class="header-center">
+                        <h2 id="current-month"></h2>
+                        <button id="today-btn">今天</button>
+                    </div>
+                    <button id="next-month">→</button>
+                </div>
+                <div class="calendar-grid" id="calendar-grid"></div>
+                <div class="month-stats">
+                    <span>月平均收益: <span id="month-average">¥0.00</span></span>
+                    <span>月总收益: <span id="month-total">¥0.00</span></span>
+                </div>
+                
+                <!-- 添加收益按钮 -->
+                <div class="add-income-section">
+                    <button id="add-income-btn" class="add-income-button">添加收益</button>
+                </div>
+            </section>
+            
+            <!-- 添加收益模态框 -->
+            <div id="add-income-modal" class="modal">
+                <div class="modal-content">
+                    <span class="close">&times;</span>
+                    <h3>添加收益记录</h3>
+                    <form id="income-form">
+                        <input type="date" id="record-date" required>
+                        <input type="number" step="0.01" id="amount" placeholder="金额" required>
+                        <select id="channel" required>
+                            <option value="">选择渠道</option>
+                            <option value="支付宝">支付宝</option>
+                            <option value="同花顺">同花顺</option>
+                            <option value="公众号">公众号</option>
+                            <option value="科大">科大</option>
+                            <option value="科学院">科学院</option>
+                            <option value="其他">其他</option>
+                        </select>
+                        <textarea id="note" placeholder="备注(可选)"></textarea>
+                        <button type="submit">保存记录</button>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- 统计分析部分 -->
+            <section id="statistics" class="section">
+                <div class="stats-controls">
+                    <div>
+                        <label>时间维度:</label>
+                        <select id="time-dimension">
+                            <option value="day" selected>按日统计</option>
+                            <option value="month">按月统计</option>
+                            <option value="quarter">按季度统计</option>
+                            <option value="year">按年度统计</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label>图表类型:</label>
+                        <select id="chart-type">
+                            <option value="pie">饼状图</option>
+                            <option value="bar">柱状图</option>
+                            <option value="line" selected>折线图</option>
+                        </select>
+                    </div>
+                    <div class="stats-controls-buttons">
+                        <button id="data-management-btn-stats" class="function-button">数据管理</button>
+                    </div>
+                </div>
+                <div class="stats-layout">
+                    <div class="chart-container">
+                        <canvas id="stats-chart"></canvas>
+                    </div>
+                    <div class="channel-stats">
+                        <h3>渠道收益占比</h3>
+                        <div id="channel-percentages"></div>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- 投资分配部分 -->
+            <section id="investment" class="section">
+                <div class="investment-channels">
+                    <div class="channels-header">
+                        <h3>投资渠道分配</h3>
+                        <div class="investment-controls">
+                            <div>
+                                <label>时间维度:</label>
+                                <select id="investment-time-dimension">
+                                    <option value="day" selected>日投资</option>
+                                    <option value="month">月投资</option>
+                                    <option value="year">年投资</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="channel-allocation">
+                        <div class="channel-item">
+                            <h4>支付宝</h4>
+                            <div class="channel-input-group">
+                                <button class="adjust-btn adjust-minus" data-channel="支付宝">-</button>
+                                <input type="number" id="alipay-input" class="investment-input" step="0.01" min="0" value="0">
+                                <button class="adjust-btn adjust-plus" data-channel="支付宝">+</button>
+                            </div>
+                            <div class="channel-value" id="alipay-investment">¥0.00</div>
+                        </div>
+                        <div class="channel-item">
+                            <h4>同花顺</h4>
+                            <div class="channel-input-group">
+                                <button class="adjust-btn adjust-minus" data-channel="同花顺">-</button>
+                                <input type="number" id="tonghuashun-input" class="investment-input" step="0.01" min="0" value="0">
+                                <button class="adjust-btn adjust-plus" data-channel="同花顺">+</button>
+                            </div>
+                            <div class="channel-value" id="tonghuashun-investment">¥0.00</div>
+                        </div>
+                        <div class="channel-item">
+                            <h4>公众号</h4>
+                            <div class="channel-input-group">
+                                <button class="adjust-btn adjust-minus" data-channel="公众号">-</button>
+                                <input type="number" id="wechat-input" class="investment-input" step="0.01" min="0" value="0">
+                                <button class="adjust-btn adjust-plus" data-channel="公众号">+</button>
+                            </div>
+                            <div class="channel-value" id="wechat-investment">¥0.00</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="investment-layout">
+                    <div class="investment-chart-container">
+                        <canvas id="investment-chart"></canvas>
+                    </div>
+                    <div class="investment-summary">
+                        <h3>投资统计摘要</h3>
+                        <div id="investment-summary"></div>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- 数据管理模态框 -->
+            <div id="data-management-modal" class="modal">
+                <div class="modal-content">
+                    <span class="close">&times;</span>
+                    <h3>数据管理</h3>
+                    <div class="data-tabs">
+                        <button class="data-tab active" data-tab="actions">数据操作</button>
+                        <button class="data-tab" data-tab="records">收益记录详情</button>
+                        <button class="data-tab" data-tab="investment">投资分配详情</button>
+                    </div>
+                    <div class="data-tab-content active" id="actions-tab">
+                        <div class="data-actions">
+                            <button id="export-csv">导出CSV</button>
+                            <button id="import-data">导入数据</button>
+                            <button id="backup-data">备份数据</button>
+                            <button id="clear-data">清空数据</button>
+                        </div>
+                    </div>
+                    <div class="data-tab-content" id="records-tab">
+                        <div class="records-controls">
+                            <div>
+                                <label>查看方式:</label>
+                                <select id="records-view-mode">
+                                    <option value="all">全部记录</option>
+                                    <option value="monthly">按月合并</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="data-list">
+                            <table id="records-table">
+                                <thead>
+                                    <tr>
+                                        <th>日期</th>
+                                        <th>金额</th>
+                                        <th>渠道</th>
+                                        <th>备注</th>
+                                        <th>操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="records-body"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="data-tab-content" id="investment-tab">
+                        <div class="records-controls">
+                            <div>
+                                <label>查看方式:</label>
+                                <select id="investment-view-mode">
+                                    <option value="all">全部记录</option>
+                                    <option value="monthly">按月合并</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="data-list">
+                            <table id="investment-table">
+                                <thead>
+                                    <tr>
+                                        <th>日期</th>
+                                        <th>渠道</th>
+                                        <th>投资金额</th>
+                                        <th>操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="investment-body"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 收益记录详情模态框 -->
+            <div id="income-records-modal" class="modal">
+                <div class="modal-content">
+                    <span class="close">&times;</span>
+                    <h3>收益记录详情</h3>
+                    <div class="data-list">
+                        <table id="records-table">
+                            <thead>
+                                <tr>
+                                    <th>日期</th>
+                                    <th>金额</th>
+                                    <th>渠道</th>
+                                    <th>备注</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="records-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+        
+        <footer>
+            <p>© 2026 收益统计软件</p>
+        </footer>
+    </div>
+    
+    <!-- 编辑记录模态框 -->
+    <div id="edit-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h3>编辑收益记录</h3>
+            <form id="edit-form">
+                <input type="hidden" id="edit-id">
+                <input type="date" id="edit-date" required>
+                <input type="number" step="0.01" id="edit-amount" placeholder="金额" required>
+                <select id="edit-channel" required>
+                    <option value="">选择渠道</option>
+                    <option value="支付宝">支付宝</option>
+                    <option value="同花顺">同花顺</option>
+                    <option value="公众号">公众号</option>
+                    <option value="科大">科大</option>
+                    <option value="科学院">科学院</option>
+                    <option value="其他">其他</option>
+                </select>
+                <textarea id="edit-note" placeholder="备注(可选)"></textarea>
+                <button type="submit">保存修改</button>
+            </form>
+        </div>
+    </div>
+    
+    <!-- 当天收益记录模态框 -->
+    <div id="day-records-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h3 id="day-records-title">2026-01-27 收益记录</h3>
+            <div id="day-records-content">
+                <div id="day-records-list">
+                    <!-- 当天记录将在这里动态生成 -->
+                </div>
+                <div class="day-records-summary">
+                    <p>当日总收益: <span id="day-total">¥0.00</span></p>
+                </div>
+                <button id="add-record-btn">添加新记录</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 设置模态框 -->
+    <div id="settings-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h3>设置</h3>
+            <div class="settings-tabs">
+                <button class="settings-tab active" data-tab="account">账号设置</button>
+                <button class="settings-tab" data-tab="app">应用设置</button>
+            </div>
+            <div class="settings-tab-content active" id="account-tab">
+                <form id="change-password-form">
+                    <h4>修改密码</h4>
+                    <input type="password" id="current-password" placeholder="当前密码" required>
+                    <input type="password" id="new-password" placeholder="新密码" required>
+                    <input type="password" id="confirm-new-password" placeholder="确认新密码" required>
+                    <button type="submit">修改密码</button>
+                </form>
+            </div>
+            <div class="settings-tab-content" id="app-tab">
+                <h4>应用设置</h4>
+                <div class="setting-item">
+                    <label for="theme-select">主题:</label>
+                    <select id="theme-select">
+                        <option value="light">浅色</option>
+                        <option value="dark">深色</option>
+                    </select>
+                </div>
+                <div class="setting-item">
+                    <label for="currency-select">货币:</label>
+                    <select id="currency-select">
+                        <option value="CNY">人民币 (¥)</option>
+                        <option value="USD">美元 ($)</option>
+                        <option value="EUR">欧元 (€)</option>
+                    </select>
+                </div>
+                <button id="save-settings-btn">保存设置</button>
+            </div>
+        </div>
+    </div>
+    
+    <script src="script.js"></script>
+</body>
+</html>
