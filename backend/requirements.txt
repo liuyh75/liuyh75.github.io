@@ -1,6 +1,0 @@
-Flask
-Flask-CORS
-Flask-JWT-Extended
-bcrypt
-python-dotenv
-SQLAlchemy
